@@ -6,6 +6,10 @@
   "author": {
     "name": ""
   },
+  "license":"ISC",
+  "engines": {
+    "node":"16.x"
+  },
   "dependencies": {
     "@discordjs/builders": "^0.15.0",
     "@discordjs/rest": "^0.5.0",
