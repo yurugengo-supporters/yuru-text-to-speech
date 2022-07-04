@@ -12,16 +12,17 @@ discordModals(client);
 const _embed_color='#d000e0';
 const _modal_id='modal-customid';
 let _mymodal=null;
+let _voices = [];
 
 const _polly_describeVoices = async () =>{
 	let polly = new aws.Polly({ apiVersion: '2016-06-10', region: 'us-east-1'});
 	return await polly.describeVoices({}).promise().then(x=>{return x;});
 };
 
-const _polly_speech = async(washa, ipa) =>{
+const _polly_speech = async(washa, engine, ipa) =>{
 	let polly = new aws.Polly({ apiVersion: '2016-06-10', region: 'us-east-1'});
 	let speechParams = {
-		//Engine : voice_engine["engine"],// "neural",//"standard",
+		Engine : engine,// "neural","standard",
 		OutputFormat: 'mp3',
 		VoiceId:washa,// "Joanna",
 		Text: "<phoneme alphabet='ipa' ph='" + ipa + "'></phoneme>",
@@ -43,17 +44,18 @@ const _create_options = (voices)=>{
 client.once('ready', async () => {
 	console.log('describeVoices');
 	const data = await _polly_describeVoices();
-	const codes = Array.from(new Set( data["Voices"].map(_ => _["LanguageCode"])));
-	const voices = codes.map(code=> data["Voices"].find(_ => _["LanguageCode"] == code));
+	_voices = data["Voices"];
+	const codes = Array.from(new Set( _voices.map(_ => _["LanguageCode"])));
+	const voices = codes.map(code=> _voices.find(_ => _["LanguageCode"] == code));
 	const options_en = _create_options(voices.filter(_=>_["LanguageCode"].startsWith("en-")));
 	const options_other = _create_options(voices.filter(_=>!_["LanguageCode"].startsWith("en-")));	
 	options_en.unshift({
-		label:"なし（↓で選択）",
+		label:"英語はここで選択",
 		value:"*",
 		default:true,
 	});
 	options_other.unshift({
-		label:"なし（↑で選択）",
+		label:"英語以外はここで選択",
 		value:"*",
 		default:true,
 	});
@@ -113,12 +115,27 @@ client.on("modalSubmit", async(modal)=>{
 		if (washa_other != "*") {
 			washa = washa_other;
 		}
-		console.log(washa);
+		const voice = _voices.find(_=> _["Id"] == washa);
+		if (voice == undefined) {
+			await modal.followUp(
+				{
+					embeds: [
+						new MessageEmbed()
+						.setColor(_embed_color)
+						.setTitle("無効な話者です。")
+					],
+				}
+			);
+			return;
+		}
+		console.log(voice);
+		const engine = voice["SupportedEngines"][0];
 		let stream;
 		try {
-			const data = await _polly_speech(washa, ipa);
+			const data = await _polly_speech(washa, engine, ipa);
 			stream = data.AudioStream;
 		} catch (ex) {
+			console.log(ex);
 			await modal.followUp(
 				{
 					embeds: [
@@ -156,4 +173,4 @@ client.on("modalSubmit", async(modal)=>{
 	}
 });
 
-client.login(process.env.DISCORD_TOKEN);
+client.login(process.env.DISCORD_TOKEN_DEV);
