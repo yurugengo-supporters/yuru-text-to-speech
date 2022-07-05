@@ -37,6 +37,7 @@ const _create_options = (voices)=>{
 		return {
 			label: _["LanguageName"],
 			value: _["Id"],
+			default:false,
 		};
 	});
 	return arr;
@@ -52,13 +53,17 @@ client.once('ready', async () => {
 	options_en.unshift({
 		label:"英語はここで選択",
 		value:"*",
-		default:true,
+		default:false,
 	});
 	options_other.unshift({
 		label:"英語以外はここで選択",
 		value:"*",
-		default:true,
+		default:false,
 	});
+	const en_us_name = _voices.find(_ => _["LanguageCode"] == "en-US")["LanguageName"];
+	console.log(en_us_name);
+	options_en.find(_ => _["label"] == en_us_name)["default"] = true;
+	options_other[0]["default"]=true;
 	const txtIpa=new TextInputComponent() 
 		.setCustomId('ipa')
 		.setLabel('IPA文字列')
@@ -173,4 +178,4 @@ client.on("modalSubmit", async(modal)=>{
 	}
 });
 
-client.login(process.env.DISCORD_TOKEN_DEV);
+client.login(process.env.DISCORD_TOKEN);
