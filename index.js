@@ -13,15 +13,15 @@ const _polly_describeVoices = async () =>{
 	return await polly.describeVoices({}).promise().then(x=>{return x;});
 };
 
-const _polly_speech = async(washa, engine, ipa) =>{
+const _polly_speech = async(washa, engine, text, text_type) =>{
 	let polly = new aws.Polly({ apiVersion: '2016-06-10', region: 'us-east-1'});
 	let speechParams = {
-		Engine : engine,// "neural","standard",
+		Engine : engine,
 		OutputFormat: 'mp3',
-		VoiceId:washa,// "Joanna",
-		Text: "<phoneme alphabet='ipa' ph='" + ipa + "'></phoneme>",
+		VoiceId:washa,
+		Text: text,
 		SampleRate: '22050',
-		TextType: 'ssml'
+		TextType: text_type
 	};
 	return await polly.synthesizeSpeech(speechParams).promise().then(z=>{ return z;});
 };
@@ -35,50 +35,55 @@ const _select_voice = (code) => {
 	return list[0];
 };
 
+const _command = async (text, code, text_type) =>{
+	const voice = _select_voice(code);
+	const engines = voice["SupportedEngines"];
+	console.log(voice);
+	let stream;
+	try {
+		let text2;
+		if (text_type=="ssml") {
+			text2 = "<phoneme alphabet='ipa' ph='" + text + "'></phoneme>";
+		} else if (text_type=="text") {
+			text2 = text;
+		}
+		const data = await _polly_speech(voice["Id"], engines[engines.length-1], text2, text_type);
+		stream = data.AudioStream;
+	} catch (ex) {
+		console.log(ex);
+		throw "音声変換に失敗しました。";
+	}
+	const tmpobj = tmp.fileSync({ postfix: '.mp3' });
+	if (tmpobj.err) {
+		console.log(tmpobj.err);
+		throw "tmpファイル作成に失敗しました。BOT管理者に連絡してください";
+	}
+	try {
+		fs.writeFileSync(tmpobj.fd, stream);
+		return tmpobj.name;
+	} catch (ex) {
+		console.log(ex);
+		throw "mp3ファイル書き込みに失敗しました。BOT管理者に連絡してください";
+	}
+};
+
 client.once('ready', async () => {
 	console.log('describeVoices');
 	const data = await _polly_describeVoices();
 	_voices = data["Voices"];
-    console.log('ready');
+	console.log('ready');
 });
 
 client.on('interactionCreate', async interaction => { 
-    if (interaction.isCommand()) {
+	if (interaction.isCommand()) {
 		const { commandName } = interaction;
-
-		if (commandName == "ipa") {
-			const ipa = interaction.options.getString("ipa");
+		if (commandName == "ipa2s") {
+			const ipa = interaction.options.getString("text");
 			const code = interaction.options.getString("speaker")
 			const label = interaction.options.getString("label", false);
 			await interaction.deferReply();
-			const voice = _select_voice(code);
-			const engines = voice["SupportedEngines"];
-			console.log(voice);
-			let stream;
 			try {
-				const data = await _polly_speech(voice["Id"], engines[engines.length-1], ipa);
-				stream = data.AudioStream;
-			} catch (ex) {
-				console.log(ex);
-				await interaction.followUp(
-					{
-						embeds: [
-							new MessageEmbed()
-							.setColor(_embed_color)
-							.setTitle("音声変換に失敗しました。")
-						],
-					}
-				);
-				return;
-			}
-			const tmpobj = tmp.fileSync({ postfix: '.mp3' });
-			if (tmpobj.err) {
-				console.log(tmpobj.err);
-				await interaction.followUp("tmpファイル作成に失敗しました。BOT管理者に連絡してください");
-				return;
-			}
-			try {
-				fs.writeFileSync(tmpobj.fd, stream);
+				const filepath = await _command(ipa, code, "ssml");
 				await interaction.followUp(
 					{
 						embeds: [
@@ -86,13 +91,48 @@ client.on('interactionCreate', async interaction => {
 							.setColor(_embed_color)
 							.setTitle(label == null ? ipa : label)
 						],
-						files: [{ "attachment": tmpobj.name }]
+						files: [{ "attachment": filepath}]
 					}
-				);	
-			} catch (ex) {
-				console.log(ex);
-				await interaction.followUp("mp3ファイル書き込みに失敗しました。BOT管理者に連絡してください");
-				return;
+				);
+			} catch (err) {
+				await interaction.followUp(
+					{
+						embeds: [
+							new MessageEmbed()
+							.setColor(_embed_color)
+							.setTitle(err)
+						],
+					}
+				);
+			}
+		}
+		if (commandName == "txt2s") {
+			const word = interaction.options.getString("text");
+			const code = interaction.options.getString("speaker")
+			const label = interaction.options.getString("label", false);
+			await interaction.deferReply();
+			try {
+				const filepath = await _command(word, code, "text");
+				await interaction.followUp(
+					{
+						embeds: [
+							new MessageEmbed()
+							.setColor(_embed_color)
+							.setTitle(label == null ? word : label)
+						],
+						files: [{ "attachment": filepath}]
+					}
+				);
+			} catch (err) {
+				await interaction.followUp(
+					{
+						embeds: [
+							new MessageEmbed()
+							.setColor(_embed_color)
+							.setTitle(err)
+						],
+					}
+				);
 			}
 		}
 	}

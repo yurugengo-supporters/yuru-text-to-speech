@@ -8,7 +8,7 @@ const cmd_ipa_eng={
 	options: [
 		{
 			type:"STRING",
-			name:"ipa",
+			name:"text",
 			description:"IPA文字列",
 			required:true,
 		},
@@ -42,7 +42,7 @@ const cmd_ipa_asia={
 	options: [
 		{
 			type:"STRING",
-			name:"ipa",
+			name:"text",
 			description:"IPA文字列",
 			required:true,
 		},
@@ -72,7 +72,7 @@ const cmd_ipa_others={
 	options: [
 		{
 			type:"STRING",
-			name:"ipa",
+			name:"text",
 			description:"IPA文字列",
 			required:true,
 		},
@@ -115,7 +115,7 @@ const cmd_ipa_others={
 	],
 };
 const cmd_ipa = {
-	name: "ipa",
+	name: "ipa2s",
 	description: "IPAを音声に変換",
 	options: [
 		cmd_ipa_eng,
@@ -123,9 +123,18 @@ const cmd_ipa = {
 		cmd_ipa_others
 	],
 };
-
+const cmd_word = {
+	name: "txt2s",
+	description: "テキストを音声に変換",
+	options: [
+		cmd_ipa_eng,
+		cmd_ipa_asia,
+		cmd_ipa_others
+	],	
+}
 const commands=[
-	cmd_ipa
+	cmd_ipa,
+	cmd_word,
 ];
 const guildId = process.argv[2];
 const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
