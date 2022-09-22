@@ -228,22 +228,14 @@ client.on('interactionCreate', async interaction => {
 				const filepath = await _command(ipa, code, "ssml");
 				await interaction.followUp(
 					{
-						embeds: [
-							new MessageEmbed()
-							.setColor(_embed_color)
-							.setTitle(label == null ? ipa : label)
-						],
+						content:label,
 						files: [{ "attachment": filepath}]
 					}
 				);
 			} catch (err) {
 				await interaction.followUp(
 					{
-						embeds: [
-							new MessageEmbed()
-							.setColor(_embed_color)
-							.setTitle(err)
-						],
+						content:err
 					}
 				);
 			}
@@ -257,22 +249,14 @@ client.on('interactionCreate', async interaction => {
 				const filepath = await _command(word, code, "text");
 				await interaction.followUp(
 					{
-						embeds: [
-							new MessageEmbed()
-							.setColor(_embed_color)
-							.setTitle(label == null ? word : label)
-						],
+						content:label == null ? word : label,
 						files: [{ "attachment": filepath}]
 					}
 				);
 			} catch (err) {
 				await interaction.followUp(
 					{
-						embeds: [
-							new MessageEmbed()
-							.setColor(_embed_color)
-							.setTitle(err)
-						],
+						content:err,
 					}
 				);
 			}
